@@ -10,10 +10,17 @@ const int DA_PIN = D5;
 
 WebSocketsClient webSocket;
 
-void sendInitialData()
+void initGPIO()
 {
-  String initialData = "{\"action\":\"want\",\"data\":[\"blocks\"]}";
-  webSocket.sendTXT(initialData);
+  pinMode(BLOCK_PIN, OUTPUT);
+  pinMode(DA_PIN, OUTPUT);
+  digitalWrite(BLOCK_PIN, LOW);
+  digitalWrite(DA_PIN, LOW);
+}
+
+void initSerial()
+{
+  Serial.begin(115200);
 }
 
 void setLedMulti(int *pins, int numPins, int value)
@@ -36,6 +43,12 @@ void flashLed(int *pins, int numPins)
   setLedMulti(pins, numPins, HIGH);
   delay(500);
   setLedMulti(pins, numPins, LOW);
+}
+
+void sendInitMessage()
+{
+  String initialData = "{\"action\":\"want\",\"data\":[\"blocks\"]}";
+  webSocket.sendTXT(initialData);
 }
 
 void handleMessage(const char *message)
@@ -77,17 +90,17 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
     break;
   case WStype_CONNECTED:
     Serial.println("Connected to WebSocket server");
-    digitalWrite(DA_PIN, HIGH);
-    delay(1000);
-    digitalWrite(DA_PIN, LOW);
+    sendInitMessage();
     break;
   case WStype_TEXT:
     handleMessage((const char *)payload);
     break;
+  default:
+    break;
   }
 }
 
-void connectWifiAndWait()
+void connectWifi()
 {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.println("Connecting to WiFi...");
@@ -100,10 +113,8 @@ void connectWifiAndWait()
   }
 }
 
-void connectWebsocket()
+void connectWebSocket()
 {
-  connectWifiAndWait();
-
   if (MEMPOOL_USE_SSL)
   {
     webSocket.beginSSL(MEMPOOL_HOST, MEMPOOL_PORT, MEMPOOL_PATH);
@@ -122,20 +133,24 @@ void connectWebsocket()
   while (!webSocket.isConnected())
   {
     webSocket.loop();
-    delay(10);
   }
-
-  sendInitialData();
 }
 
 void setup()
 {
-  pinMode(BLOCK_PIN, OUTPUT);
-  pinMode(DA_PIN, OUTPUT);
+  initGPIO();
+  initSerial();
+
+  connectWifi();
+  digitalWrite(BLOCK_PIN, HIGH);
+
+  connectWebSocket();
+  digitalWrite(DA_PIN, HIGH);
+
+  delay(1000);
+
   digitalWrite(BLOCK_PIN, LOW);
   digitalWrite(DA_PIN, LOW);
-  Serial.begin(115200);
-  connectWebsocket();
 }
 
 void loop()

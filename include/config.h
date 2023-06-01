@@ -1,12 +1,12 @@
-#ifndef BLOCKCLOCK_CONFIG_H
-#define BLOCKCLOCK_CONFIG_H
+#ifndef BITTICK_CONFIG_H_
+#define BITTICK_CONFIG_H_
 
-const char *WIFI_SSID = "<fill_SSID>";
-const char *WIFI_PASSWORD = "<fill_password>";
+#define WIFI_SSID "<fill_SSID>"
+#define WIFI_PASSWORD "<fill_password>"
 
-const char *MEMPOOL_HOST = "mempool.space";
-const int MEMPOOL_PORT = 443;
-const char *MEMPOOL_PATH = "/api/v1/ws";
-const bool MEMPOOL_USE_SSL = true;
+#define MEMPOOL_HOST "mempool.space"
+#define MEMPOOL_PORT 443
+#define MEMPOOL_PATH "/api/v1/ws"
+#define MEMPOOL_USE_SSL true
 
 #endif

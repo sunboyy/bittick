@@ -115,14 +115,11 @@ void connectWifi()
 
 void connectWebSocket()
 {
-  if (MEMPOOL_USE_SSL)
-  {
-    webSocket.beginSSL(MEMPOOL_HOST, MEMPOOL_PORT, MEMPOOL_PATH);
-  }
-  else
-  {
-    webSocket.begin(MEMPOOL_HOST, MEMPOOL_PORT, MEMPOOL_PATH);
-  }
+#if MEMPOOL_USE_SSL
+  webSocket.beginSSL(MEMPOOL_HOST, MEMPOOL_PORT, MEMPOOL_PATH);
+#else
+  webSocket.begin(MEMPOOL_HOST, MEMPOOL_PORT, MEMPOOL_PATH);
+#endif
 
   webSocket.onEvent(webSocketEvent);
   webSocket.setReconnectInterval(5000);

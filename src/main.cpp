@@ -1,14 +1,13 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
-#include <WebSocketsClient.h>
-#include <ArduinoJson.h>
+#include <MempoolClient.h>
 
 #include "config.h"
 
 const int BLOCK_PIN = D6;
 const int DA_PIN = D5;
 
-WebSocketsClient webSocket;
+MempoolClient mempoolClient;
 
 void initGPIO()
 {
@@ -45,58 +44,19 @@ void flashLed(int *pins, int numPins)
   setLedMulti(pins, numPins, LOW);
 }
 
-void sendInitMessage()
+void onBlockEvent(int height)
 {
-  String initialData = "{\"action\":\"want\",\"data\":[\"blocks\"]}";
-  webSocket.sendTXT(initialData);
-}
+  Serial.print("Received block at height ");
+  Serial.println(height);
 
-void handleMessage(const char *message)
-{
-  DynamicJsonDocument doc(8192);
-  deserializeJson(doc, message);
-  JsonObject data = doc.as<JsonObject>();
-  Serial.print("Received message: ");
-  serializeJson(data, Serial);
-  Serial.println();
-
-  if (data.containsKey("block"))
+  int pins_to_flash[] = {BLOCK_PIN, DA_PIN};
+  if (height % 2016 == 0)
   {
-    int height = data["block"]["height"];
-    Serial.print("Received block ");
-    Serial.print(data["block"]["id"].as<String>());
-    Serial.print(" at height ");
-    Serial.println(height);
-
-    int pins_to_flash[] = {BLOCK_PIN, DA_PIN};
-    if (height % 2016 == 0)
-    {
-      Serial.println("Difficulty adjustment block");
-      flashLed(pins_to_flash, 2);
-    }
-    else
-    {
-      flashLed(pins_to_flash, 1);
-    }
+    flashLed(pins_to_flash, 2);
   }
-}
-
-void webSocketEvent(WStype_t type, uint8_t *payload, size_t length)
-{
-  switch (type)
+  else
   {
-  case WStype_DISCONNECTED:
-    Serial.println("Disconnected from WebSocket server");
-    break;
-  case WStype_CONNECTED:
-    Serial.println("Connected to WebSocket server");
-    sendInitMessage();
-    break;
-  case WStype_TEXT:
-    handleMessage((const char *)payload);
-    break;
-  default:
-    break;
+    flashLed(pins_to_flash, 1);
   }
 }
 
@@ -113,23 +73,16 @@ void connectWifi()
   }
 }
 
-void connectWebSocket()
+void connectMempool()
 {
-#if MEMPOOL_USE_SSL
-  webSocket.beginSSL(MEMPOOL_HOST, MEMPOOL_PORT, MEMPOOL_PATH);
-#else
-  webSocket.begin(MEMPOOL_HOST, MEMPOOL_PORT, MEMPOOL_PATH);
-#endif
+  mempoolClient.begin(MEMPOOL_HOST, MEMPOOL_PORT, MEMPOOL_PATH, MEMPOOL_USE_SSL);
+  mempoolClient.onBlock(onBlockEvent);
 
-  webSocket.onEvent(webSocketEvent);
-  webSocket.setReconnectInterval(5000);
-  webSocket.enableHeartbeat(30000, 2000, 2);
+  Serial.println("Connecting to Mempool...");
 
-  Serial.println("Connecting to WebSocket server...");
-
-  while (!webSocket.isConnected())
+  while (!mempoolClient.isConnected())
   {
-    webSocket.loop();
+    mempoolClient.loop();
   }
 }
 
@@ -141,7 +94,7 @@ void setup()
   connectWifi();
   digitalWrite(BLOCK_PIN, HIGH);
 
-  connectWebSocket();
+  connectMempool();
   digitalWrite(DA_PIN, HIGH);
 
   delay(1000);
@@ -152,5 +105,5 @@ void setup()
 
 void loop()
 {
-  webSocket.loop();
+  mempoolClient.loop();
 }

@@ -5,16 +5,13 @@
 #include "config.h"
 
 const int BLOCK_PIN = D6;
-const int DA_PIN = D5;
 
 MempoolClient mempoolClient;
 
 void initGPIO()
 {
   pinMode(BLOCK_PIN, OUTPUT);
-  pinMode(DA_PIN, OUTPUT);
   digitalWrite(BLOCK_PIN, LOW);
-  digitalWrite(DA_PIN, LOW);
 }
 
 void initSerial()
@@ -22,26 +19,18 @@ void initSerial()
   Serial.begin(115200);
 }
 
-void setLedMulti(int *pins, int numPins, int value)
-{
-  for (int i = 0; i < numPins; i++)
-  {
-    digitalWrite(pins[i], value);
-  }
-}
-
-void flashLed(int *pins, int numPins)
+void flashLed(int pin)
 {
   for (int i = 0; i < 9; i++)
   {
-    setLedMulti(pins, numPins, HIGH);
+    digitalWrite(pin, HIGH);
     delay(100);
-    setLedMulti(pins, numPins, LOW);
+    digitalWrite(pin, LOW);
     delay(100);
   }
-  setLedMulti(pins, numPins, HIGH);
+  digitalWrite(pin, HIGH);
   delay(500);
-  setLedMulti(pins, numPins, LOW);
+  digitalWrite(pin, LOW);
 }
 
 void onBlockEvent(int height)
@@ -49,15 +38,7 @@ void onBlockEvent(int height)
   Serial.print("Received block at height ");
   Serial.println(height);
 
-  int pins_to_flash[] = {BLOCK_PIN, DA_PIN};
-  if (height % 2016 == 0)
-  {
-    flashLed(pins_to_flash, 2);
-  }
-  else
-  {
-    flashLed(pins_to_flash, 1);
-  }
+  flashLed(BLOCK_PIN);
 }
 
 void connectWifi()
@@ -95,12 +76,8 @@ void setup()
   digitalWrite(BLOCK_PIN, HIGH);
 
   connectMempool();
-  digitalWrite(DA_PIN, HIGH);
-
-  delay(1000);
 
   digitalWrite(BLOCK_PIN, LOW);
-  digitalWrite(DA_PIN, LOW);
 }
 
 void loop()
